@@ -1,10 +1,12 @@
 /// <reference types="@cloudflare/workers-types" />
 
-declare var STORAGE: KVNamespace;
+declare let R2_BUCKET: R2Bucket;
 const key = (hash: string) => `artifact:${hash}`;
 
 // See https://developers.cloudflare.com/workers/cli-wrangler/commands#secret
-declare var SECRET_KEY: string;
+declare let SECRET_KEY: string;
+
+const RETENTION_DAYS = 7;
 
 addEventListener('fetch', event => {
   const { request } = event;
@@ -64,21 +66,38 @@ addEventListener('fetch', event => {
 
 // prettier-ignore
 async function getArtifact(hash: string): Promise<Response> {
-  const artifact = await STORAGE.get(key(hash), 'stream');
+  const artifact = await R2_BUCKET.get(key(hash));
   if (artifact) {
-    return new Response(artifact);
+    return new Response(artifact.body);
   } else {
-    return new Response('Artifact not found', { status: 404 });
+    return new Response('Artifact not found', { status: 404,});
   }
 }
 
 // prettier-ignore
 async function putArtifact(hash: string, artifact: ReadableStream,): Promise<Response> {
   try {
-    await STORAGE.put(key(hash), artifact);
+    await R2_BUCKET.put(key(hash), artifact);
     return new Response(null, { status: 204 });
   } catch (e) {
     console.error(e);
-    return new Response('Failed to store artifact', { status: 500 });
+    return new Response('Failed to store artifact', {
+      status: 500,
+    });
   }
+}
+
+addEventListener('scheduled', event => {
+  event.waitUntil(deleteOldArtifacts());
+});
+
+async function deleteOldArtifacts() {
+  const { objects: artifacts } = await R2_BUCKET.list({
+    prefix: 'artifact:',
+  });
+  const keepAfter = +Date.now() - 86_400 * RETENTION_DAYS;
+  const oldArtifacts = artifacts.filter(
+    a => +a.uploaded < keepAfter,
+  );
+  await R2_BUCKET.delete(oldArtifacts.map(a => a.key));
 }
