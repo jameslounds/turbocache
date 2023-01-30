@@ -6,14 +6,11 @@ Simple and Fast [custom remote cache](https://turborepo.org/docs/features/remote
 
 Fork this, modify `wrangler.toml` and deploy to your Cloudflare account.
 
-You should also setup a KV namespace and the secret key.
+You should also setup a R2 bucket and the secret key. All artifacts older than 7 days are cleared every day at midnight UTC by default.
 
 ```bash
-# to create a KV namespace and put the id in wrangler.toml
-yarn wrangler kv:namespace create STORAGE
-
-# to create a KV preview_id and put the preview_id in wrangler.toml
-yarn wrangler kv:namespace create STORAGE --preview
+# to create a R2 bucket. You will need to add the binding name as R2_BUCKET. If you use the turbocache-artifacts, you do not need to change any config
+yarn wrangler r2 bucket create turbocache-artifacts
 
 # to provide a secret key
 yarn wrangler secret put SECRET_KEY
@@ -41,7 +38,6 @@ If I ever actually use this...
 
 - [ ] Auth via GitHub
 - [ ] Team Management
-- [ ] Clear unused caches
 - [ ] Web Client
 - [ ] ... What else?
 
