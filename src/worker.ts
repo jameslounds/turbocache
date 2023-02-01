@@ -16,14 +16,12 @@ addEventListener('fetch', event => {
   const match = url.pathname.match(storageRoutePattern);
 
   if (!match) {
-    return void event.respondWith(
-      new Response(null, { status: 404 }),
-    );
+    return void event.respondWith(new Response(null, { status: 404 }));
   }
-  // prettier-ignore
+
   if (request.headers.get('Authorization') !== `Bearer ${SECRET_KEY}`) {
     return void event.respondWith(
-      new Response('Request not permitted', { status: 401 }),
+      new Response('Request not permitted', { status: 401 })
     );
   }
 
@@ -31,51 +29,43 @@ addEventListener('fetch', event => {
 
   switch (request.method) {
     case 'GET': {
-      // prettier-ignore
-      return void event.respondWith(
-        getArtifact(hash),
-      );
+      return void event.respondWith(getArtifact(hash));
     }
 
     case 'HEAD': {
-      // prettier-ignore
-      return void event.respondWith(
-        getArtifact(hash),
-      );
+      return void event.respondWith(getArtifact(hash));
     }
 
     case 'PUT': {
       if (!request.body) {
-        // prettier-ignore
         return void event.respondWith(
-          new Response('Request body cannot be empty', { status: 400 }),
+          new Response('Request body cannot be empty', { status: 400 })
         );
       }
-      return void event.respondWith(
-        putArtifact(hash, request.body),
-      );
+      return void event.respondWith(putArtifact(hash, request.body));
     }
 
     default: {
       return void event.respondWith(
-        new Response('Method not allowed', { status: 405 }),
+        new Response('Method not allowed', { status: 405 })
       );
     }
   }
 });
 
-// prettier-ignore
 async function getArtifact(hash: string): Promise<Response> {
   const artifact = await R2_BUCKET.get(key(hash));
   if (artifact) {
     return new Response(artifact.body);
   } else {
-    return new Response('Artifact not found', { status: 404,});
+    return new Response('Artifact not found', { status: 404 });
   }
 }
 
-// prettier-ignore
-async function putArtifact(hash: string, artifact: ReadableStream,): Promise<Response> {
+async function putArtifact(
+  hash: string,
+  artifact: ReadableStream
+): Promise<Response> {
   try {
     await R2_BUCKET.put(key(hash), artifact);
     return new Response(null, { status: 204 });
@@ -96,8 +86,6 @@ async function deleteOldArtifacts() {
     prefix: 'artifact:',
   });
   const keepAfter = +Date.now() - 86_400 * RETENTION_DAYS;
-  const oldArtifacts = artifacts.filter(
-    a => +a.uploaded < keepAfter,
-  );
+  const oldArtifacts = artifacts.filter(a => +a.uploaded < keepAfter);
   await R2_BUCKET.delete(oldArtifacts.map(a => a.key));
 }
