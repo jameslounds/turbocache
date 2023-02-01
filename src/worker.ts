@@ -33,7 +33,7 @@ addEventListener('fetch', event => {
     }
 
     case 'HEAD': {
-      return void event.respondWith(getArtifact(hash));
+      return void event.respondWith(getArtifactMetadata(hash));
     }
 
     case 'PUT': {
@@ -57,6 +57,15 @@ async function getArtifact(hash: string): Promise<Response> {
   const artifact = await R2_BUCKET.get(key(hash));
   if (artifact) {
     return new Response(artifact.body);
+  } else {
+    return new Response('Artifact not found', { status: 404 });
+  }
+}
+
+async function getArtifactMetadata(hash: string) {
+  const artifactMetadata = await R2_BUCKET.head(key(hash));
+  if (artifactMetadata) {
+    return new Response(null, { status: 200 });
   } else {
     return new Response('Artifact not found', { status: 404 });
   }
