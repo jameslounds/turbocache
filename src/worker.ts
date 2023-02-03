@@ -94,7 +94,7 @@ async function deleteOldArtifacts() {
   const { objects: artifacts } = await R2_BUCKET.list({
     prefix: 'artifact:',
   });
-  const keepAfter = +Date.now() - 86_400 * RETENTION_DAYS;
+  const keepAfter = +Date.now() - 86_400_000 * RETENTION_DAYS;
   const oldArtifacts = artifacts.filter(a => +a.uploaded < keepAfter);
   await R2_BUCKET.delete(oldArtifacts.map(a => a.key));
 }
